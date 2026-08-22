@@ -1,0 +1,1 @@
+window.EB={SUPABASE_URL:'https://ddaumlqicwlpvhcoulme.supabase.co',SUPABASE_KEY:'sb_publishable_05ZLRM7uT2y5DX6xlmxHSg_5l5VYvlV',API:'https://ddaumlqicwlpvhcoulme.supabase.co/functions/v1/elegance-bladi-api'};
