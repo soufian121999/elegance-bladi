@@ -9,9 +9,16 @@
     const old=b.textContent;
     b.disabled=true;b.textContent='Envoi...';
     try{
-      const data=await api('send-to-ozon',{order_id:orderId});
-      if(!data?.ok)throw new Error(data?.error||'OZON_SEND_FAILED');
-      alert('تم إرسال الطلبية لـ Ozon بنجاح.\nTracking: '+(data.tracking_number||'—'));
+      const s=(await sb.auth.getSession()).data.session;
+      if(!s)throw new Error('LOGIN_REQUIRED');
+      const r=await fetch(EB.SUPABASE_URL+'/functions/v1/ozon-send-order-v2',{
+        method:'POST',
+        headers:{'authorization':'Bearer '+s.access_token,'content-type':'application/json'},
+        body:JSON.stringify({order_id:orderId})
+      });
+      const data=await r.json().catch(()=>({}));
+      if(!r.ok||!data?.ok)throw new Error(data?.error||('HTTP_'+r.status));
+      alert((data.already_sent?'الطلبية راه كانت ديجا مرسلة لـ Ozon.':'تم إرسال الطلبية لـ Ozon بنجاح.')+'\nTracking: '+(data.tracking_number||'—'));
       location.reload();
     }catch(err){
       console.error('Ozon send error',err);
