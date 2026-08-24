@@ -1,0 +1,30 @@
+(()=>{
+  const CACHE_KEY='eb_return_analysis_v1',CACHE_MS=15*60*1000;
+  let all=[],classified=[];
+  const esc2=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const pof=x=>Array.isArray(x?.ozon_parcels)?x.ozon_parcels[0]:(x?.ozon_parcels||null);
+  const cof=x=>Array.isArray(x?.customers)?x.customers[0]:(x?.customers||{});
+  const txt=v=>String(v||'').toLowerCase();
+  const isReturned=s=>txt(s).includes('retour');
+  const isReceived=s=>txt(s).includes('retourn')&&txt(s).includes('reçu par client');
+  async function fetchAll(){let page=1,out=[];while(page<=30){const j=await api(`orders?page=${page}&limit=100`);const rows=j.data||[];out.push(...rows);if(rows.length<100||out.length>=Number(j.count||out.length))break;page++}return out}
+  async function hist(track){try{return (await api('tracking-history',{tracking_number:track})).history||[]}catch{return []}}
+  function labels(h){return h.map(e=>String(e.status_label||e.status_code||'')).filter(Boolean)}
+  function classifyFrom(order,h=[]){const p=pof(order),current=String(p?.ozon_status_label||p?.ozon_status||order.status||''),ls=labels(h),joined=ls.join(' | ').toLowerCase(),received=isReceived(current)||ls.some(isReceived),hadDelivered=joined.includes('livr')||joined.includes('deliver'),hadRefused=joined.includes('refus'),hadCancelled=joined.includes('annul');let type='Retour';if(hadDelivered)type='Échange';else if(hadRefused)type='Refusé et retourné';else if(hadCancelled)type='Annulé et retourné';return {...order,_return:{type,received,current,history:ls}}}
+  async function analyze(force=false){if(!force){try{const c=JSON.parse(localStorage.getItem(CACHE_KEY)||'null');if(c&&Date.now()-c.at<CACHE_MS){classified=c.data||[];return classified}}catch{}}
+    all=await fetchAll();const candidates=all.filter(x=>isReturned(pof(x)?.ozon_status_label||pof(x)?.ozon_status||x.status));classified=[];
+    let i=0;for(const x of candidates){i++;const tr=pof(x)?.tracking_number;const h=tr?await hist(tr):[];classified.push(classifyFrom(x,h));const prog=document.getElementById('returnsProgress');if(prog)prog.textContent=`تحليل ${i}/${candidates.length}...`}
+    try{localStorage.setItem(CACHE_KEY,JSON.stringify({at:Date.now(),data:classified}))}catch{}return classified}
+  function updateDashboard(){if(!document.getElementById('home'))return;const ensure=(id,label,cls='')=>{if(document.getElementById(id))return;const grid=document.querySelector('#home .stats-grid');if(!grid)return;const d=document.createElement('div');d.className=`kpi ${cls}`;d.innerHTML=`<span>${label}</span><b id="${id}">—</b>`;grid.appendChild(d)};
+    ensure('cancelledSmartCount','Annulé','bad-kpi');ensure('refusedSmartCount','Refusé','bad-kpi');ensure('exchangeSmartCount','Échange','warn-kpi');ensure('returnSmartCount','Retour','bad-kpi');
+    analyze().then(rows=>{const c={cancelled:0,refused:0,exchange:0,ret:0};rows.forEach(x=>{const t=x._return?.type;if(t==='Échange')c.exchange++;else if(t==='Refusé et retourné')c.refused++;else if(t==='Annulé et retourné')c.cancelled++;else c.ret++});
+      // Current non-returned Annulé / Refusé are added too.
+      fetchAll().then(orders=>{orders.forEach(x=>{const s=txt(pof(x)?.ozon_status_label||pof(x)?.ozon_status||x.status);if(!s.includes('retour')){if(s.includes('annul'))c.cancelled++;else if(s.includes('refus'))c.refused++}});cancelledSmartCount.textContent=c.cancelled;refusedSmartCount.textContent=c.refused;exchangeSmartCount.textContent=c.exchange;returnSmartCount.textContent=c.ret}).catch(()=>{});
+    }).catch(()=>{})}
+  function render(rows){const tbody=document.getElementById('returnsRows');if(!tbody)return;const atOzon=rows.filter(x=>!x._return.received).length,got=rows.length-atOzon,ex=rows.filter(x=>x._return.type==='Échange').length,rf=rows.filter(x=>x._return.type==='Refusé et retourné').length,an=rows.filter(x=>x._return.type==='Annulé et retourné').length,plain=rows.filter(x=>x._return.type==='Retour').length;
+    returnsAtOzon.textContent=atOzon;returnsReceived.textContent=got;returnsExchange.textContent=ex;returnsRefused.textContent=rf;returnsCancelled.textContent=an;returnsPlain.textContent=plain;
+    tbody.innerHTML=rows.length?rows.map(x=>{const p=pof(x),c=cof(x),r=x._return,status=r.received?'Retour reçu chez nous':'Retour encore chez Ozon',cl=r.received?'good':'move';return `<tr><td><b>${esc2(x.order_number||'—')}</b></td><td>${esc2(c.name||'—')}<br><small>${esc2(c.phone_normalized||'')}</small></td><td>${esc2(x.city_name||'')}</td><td>${Number(x.cod_total||0).toFixed(2)} DH</td><td><span class="status ${r.type==='Échange'?'move':'bad'}">${esc2(r.type)}</span></td><td><span class="status ${cl}">${esc2(status)}</span></td><td><span class="tracking-code">${esc2(p?.tracking_number||'—')}</span></td><td>${p?.tracking_number?`<button class="btn soft ret-track" data-track="${esc2(p.tracking_number)}">Suivi</button>`:''}</td></tr>`}).join(''):'<tr><td colspan="8">ما كاين حتى Retour.</td></tr>';tbody.querySelectorAll('.ret-track').forEach(b=>b.onclick=()=>{go('orders');openTracking(b.dataset.track)})}
+  async function loadReturns(force=false){const tbody=document.getElementById('returnsRows');if(tbody)tbody.innerHTML='<tr><td colspan="8">جاري تحليل historique ديال retours...</td></tr>';const rows=await analyze(force);render(rows);const p=document.getElementById('returnsProgress');if(p)p.textContent=`${rows.length} retours analysés`}
+  function install(){const nav=document.querySelector('[data-view="returns"]');if(nav)nav.onclick=()=>{go('returns');pageTitle.textContent='Retours';loadReturns(false)};document.getElementById('returnsRefresh')?.addEventListener('click',()=>loadReturns(true));updateDashboard()}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install);else install();
+})();
