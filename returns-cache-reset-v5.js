@@ -1,0 +1,1 @@
+(()=>{const FLAG='eb_returns_cache_reset_v5';if(localStorage.getItem(FLAG))return;['eb_return_analysis_v4','eb_return_analysis_v3','eb_return_analysis_v2'].forEach(k=>localStorage.removeItem(k));localStorage.setItem(FLAG,'1');})();
