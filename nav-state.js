@@ -6,6 +6,6 @@
   document.addEventListener('click',e=>{const t=e.target.closest?.('[data-view],[data-go]');if(!t)return;const v=t.dataset.view||t.dataset.go;if(allowed.has(v))remember(v)},true);
   window.addEventListener('hashchange',()=>{const v=location.hash.replace('#','');if(!allowed.has(v))return;const btn=document.querySelector(`.nav[data-view="${v}"]`);if(btn&&!btn.classList.contains('active'))btn.click()});
   function loadScript(src,key){if(document.querySelector(`script[data-${key}]`))return;const s=document.createElement('script');s.src=src;s.setAttribute(`data-${key}`,'1');document.body.appendChild(s)}
-  function boot(){loadScript('dashboard-pro.js?v=20260824-2125','eb-pro');loadScript('returns.js?v=20260824-2130','eb-returns');setTimeout(restore,350)}
+  function boot(){loadScript('dashboard-pro.js?v=20260825-0940','eb-pro');loadScript('returns.js?v=20260825-0940','eb-returns');setTimeout(restore,350)}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
 })();
