@@ -41,6 +41,6 @@
     setMini('Livré Facturé',factured.length,'Déjà réglé');setMini('Retourné',plainReturn.length,'Retours simples; voir page Retours');setMini('Refusé',refused,`${refRet.length} Refusé et retourné`);setMini('Annulé',cancelled,`${annRet.length} Annulé et retourné`);ensureMini('Échange',exchange.length,'Livré puis retourné','#3979b8');
     const note=document.querySelector('#proDashboard .proNote');if(note)note.textContent='Ozon: Facturé = déjà réglé. Tout Livré non Facturé (y compris Payé) = restant à recevoir. Les frais Refus/Retour sont déduits selon la ville.';
   }catch(e){console.error('dashboard smart fix',e)}}
-  function boot(){setTimeout(refresh,1800);setTimeout(refresh,6500);document.querySelector('.nav[data-view="home"]')?.addEventListener('click',()=>setTimeout(refresh,900));window.EBRefreshSmartDashboard=refresh}
+  function boot(){setTimeout(refresh,1800);setTimeout(refresh,6500);document.querySelector('.nav[data-view="home"]')?.addEventListener('click',()=>setTimeout(refresh,900));window.addEventListener('eb:return-analysis-updated',()=>setTimeout(refresh,150));window.EBRefreshSmartDashboard=refresh}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
 })();
