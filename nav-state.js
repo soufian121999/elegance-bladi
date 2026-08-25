@@ -6,6 +6,12 @@
   document.addEventListener('click',e=>{const t=e.target.closest?.('[data-view],[data-go]');if(!t)return;const v=t.dataset.view||t.dataset.go;if(allowed.has(v))remember(v)},true);
   window.addEventListener('hashchange',()=>{const v=location.hash.replace('#','');if(!allowed.has(v))return;const btn=document.querySelector(`.nav[data-view="${v}"]`);if(btn&&!btn.classList.contains('active'))btn.click()});
   function loadScript(src,key){if(document.querySelector(`script[data-${key}]`))return;const s=document.createElement('script');s.src=src;s.setAttribute(`data-${key}`,'1');document.body.appendChild(s)}
-  function boot(){loadScript('dashboard-pro.js?v=20260825-0940','eb-pro');loadScript('returns.js?v=20260825-0940','eb-returns');setTimeout(()=>loadScript('dashboard-smart-fix.js?v=20260825-1005','eb-smart'),500);setTimeout(restore,350)}
+  function boot(){
+    loadScript('dashboard-pro.js?v=20260825-1045','eb-pro');
+    loadScript('returns-cache-reset-v5.js?v=20260825-1045','eb-retreset');
+    setTimeout(()=>loadScript('returns.js?v=20260825-1045','eb-returns'),80);
+    setTimeout(()=>loadScript('dashboard-smart-fix.js?v=20260825-1045','eb-smart'),700);
+    setTimeout(restore,350)
+  }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
 })();
