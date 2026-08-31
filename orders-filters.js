@@ -1,5 +1,5 @@
 (()=>{
-  let statusFilter='', cityFilter='', allOrdersCache=null, filteredPage=1, loadingAll=null;
+  let statusFilter='', cityFilter='', allOrdersCache=null, cacheAt=0, filteredPage=1, loadingAll=null;
   const pageSize=100;
   const baseLoadOrders=loadOrders;
   const baseRenderPagination=renderPagination;
@@ -10,7 +10,7 @@
   function escOpt(v){return String(v).replaceAll('&','&amp;').replaceAll('"','&quot;').replaceAll('<','&lt;').replaceAll('>','&gt;')}
 
   async function ensureAllOrders(force=false){
-    if(allOrdersCache&&!force)return allOrdersCache;
+    if(allOrdersCache&&!force&&Date.now()-cacheAt<60000)return allOrdersCache;
     if(loadingAll)return loadingAll;
     loadingAll=(async()=>{
       const first=await api('orders?page=1&limit=200');
@@ -20,7 +20,7 @@
         const rest=await Promise.all(Array.from({length:pages-1},(_,i)=>api(`orders?page=${i+2}&limit=200`)));
         rest.forEach(j=>rows.push(...(j.data||[])));
       }
-      allOrdersCache=rows;
+      allOrdersCache=rows;cacheAt=Date.now();
       populateFilterOptions();
       return rows;
     })().finally(()=>loadingAll=null);
@@ -87,6 +87,7 @@
     document.getElementById('orderStatusFilter').onchange=e=>{statusFilter=e.target.value;applyFilters()};
     document.getElementById('orderCityFilter').onchange=e=>{cityFilter=e.target.value;applyFilters()};
     ensureAllOrders().catch(console.error);
+    document.addEventListener('visibilitychange',()=>{if(!document.hidden&&Date.now()-cacheAt>60000){allOrdersCache=null;cacheAt=0}});
   }
 
   loadOrders=async function(page=1){
